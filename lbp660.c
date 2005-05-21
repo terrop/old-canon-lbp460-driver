@@ -726,7 +726,7 @@ static int print_page( int page ) {
    int len = 0;
    int size;
    
-   int* data = (int*)&pagedata;
+   int *data = pagedata;
 
    struct timeval printinittv;
    struct timeval printnewtv;
@@ -753,7 +753,7 @@ static int print_page( int page ) {
          len = -data[offset];
          if (len == 260) {
             offset = 0;
-            data = (int*)&bandinit;
+            data = bandinit;
          }
          else if (len > 255) {
             fprintf(stderr,  "Sending band %d...\n", i);
