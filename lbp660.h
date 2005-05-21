@@ -21,14 +21,11 @@
  */
 
 #define LINE_SIZE		600	
-//#define PIXELS_BY_ROW  	(LINE_SIZE*8)	
-//#define LINES_BY_PAGE	6760 //6774
 #define LINES_BY_PAGE660	6968
 #define LINES_BY_PAGE460	3484
 #define ROWS_BY_BAND  	104 // number of rows in a band
 
 #define MAX_PACKET_COUNT 3072 // Maximum number of packet in a transfer
-//#define MAX_PACKET_COUNT 12000 // Maximum number of packet in a transfer
 
 #define PAGE_DELAY 3000000 //Delay between pages, in usec
 
