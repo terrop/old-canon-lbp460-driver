@@ -246,7 +246,7 @@ compress_bitmap () {
 	}
 	if (strncmp(cbm,"P4",2)) {
 		fprintf(stderr,"Wrong file format.\n");
-		fprintf(stderr,"file position: %x\n",ftell(bitmapf));
+		fprintf(stderr,"file position: %lx\n", ftell(bitmapf));
 		errorexit();
 	}
 	/* bypass the comment line */
@@ -572,7 +572,7 @@ int print_band ( int band, int size, int type, int white, int timeout ) {
             }
          }
       } while (((ret = statusin()) & 0xf0) != 0x70);
-      fprintf(stderr, "Band inited (0x%x, %d)\n", statusin(), ((ntv.tv_usec - ltv.tv_usec) + ((ntv.tv_sec - ltv.tv_sec)*1000000)));
+      fprintf(stderr, "Band inited (0x%x, %lu)\n", statusin(), ((ntv.tv_usec - ltv.tv_usec) + ((ntv.tv_sec - ltv.tv_sec)*1000000)));
    }
    else {
       fprintf(stderr, "Band inited (0x%x, 0)\n", statusin());
