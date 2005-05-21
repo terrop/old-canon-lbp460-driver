@@ -136,14 +136,6 @@ static int pktcnt;
 static int topskip = 0;
 static int leftskip = 0;
 
-static unsigned char parity[] =
-{
-	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
-	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
-	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
-};
-
 static void message (char *fmt, ...)
 {
 	va_list args;
@@ -204,6 +196,14 @@ static void next_page (int page)
 
 static void out_packet (int rle, unsigned char a, unsigned char b, unsigned char c)
 {
+	static unsigned char parity[] =
+	{
+		0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
+		1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
+		1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
+		0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
+	};
+
 	union pkt1 pk1;
 	union pkt2 pk2;
 	union pkt3 pk3;
