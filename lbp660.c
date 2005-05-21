@@ -116,9 +116,6 @@ static int bandinit[] =
 	-260
 };
 
-static struct timeval lasttv;
-static struct timeval newtv;
-
 void INLINE errorexit();
 
 static int lines_by_page = LINES_BY_PAGE660;
@@ -397,20 +394,6 @@ static int compress_bitmap (void)
 
 /* End of Rildo Pragana constants and functions */
 
-void INLINE ssleep (const int usec)
-{
-	gettimeofday (&lasttv, NULL);
-	while (1)
-	{
-		gettimeofday (&newtv, NULL);
-		if (((newtv.tv_usec - lasttv.tv_usec)
-		     + ((newtv.tv_sec - lasttv.tv_sec) * 1000000)) > usec)
-		{
-			break;
-		}
-	}
-}
-
 void INLINE errorexit (void)
 {
 #ifdef DEBUG
@@ -466,7 +449,7 @@ int INLINE cmdout (int cmd)
 {
 	int stat;
 	ctrlout (cmd);
-	ssleep (1);
+	usleep (1);
 	stat = statusin();
 	checkctrl (cmd);
 	return stat;
@@ -487,7 +470,7 @@ int INLINE cmddataouts (int cmd, int data, int sleep)
 {
 	int stat;
 	ctrlout (cmd);
-	ssleep (sleep);
+	usleep (sleep);
 	stat = statusin();
 	dataout (data);
 	checkctrl (cmd);
@@ -520,7 +503,7 @@ void INLINE data6out (int data)
 	// Must be : cmdout (2, 4[e6])
 	checkcmddataout (0x06, data, 0x70, 0x70);
 	ctrlout (0x06);
-	ssleep (10);
+	usleep (10);
 	checkcmdout (0x7, 0x70, 0x70);
 	checkcmdout (0x6, 0x70, 0x70);
 	ctrlout (0x06);
@@ -691,27 +674,27 @@ static void reset_printer (void)
 	message ("Reseting the printer...\n");
 	dataout (0x24);
 	dataout (0x06);
-	ssleep (100);
+	usleep (100);
 	ctrlout (0x0a);
 	ctrlout (0x0a);
 	ctrlout (0x0e);
-	ssleep (1000000); //16
+	usleep (1000000); //16
 	dataout (0x24);
 	checkctrl (0xce);
 	ctrlout (0x06);
-	ssleep (150); /* 100-250 */
+	usleep (150); /* 100-250 */
 	checkstatus (0x3e);
 	checkctrl (0xc6);
 	ctrlout (0x07);
 	ctrlout (0x07);
 	ctrlout (0x04);
-	ssleep (40);
+	usleep (40);
 	checkstatus (0xde);
 	checkctrl (0xc4);
 	ctrlout (0x06);
-	ssleep (40);
+	usleep (40);
 	checkstatus (0xfe);
-	ssleep (10);
+	usleep (10);
 	checkctrl (0xc6);
 	ctrlout (0x06);
 	sig = 0; /* true if a 5e has been received */
@@ -751,39 +734,39 @@ static void reset_printer (void)
 	ctrlout (0x04);
 	checkcmdout (0x0c, 0x28, 0x78);
 	ctrlout (0x0c);
-	ssleep (15);
+	usleep (15);
 	dataout (0x20);
 	checkctrl (0xcc);
 	checkcmdout (0x06, 0x38, 0x78);
 	ctrlout (0x07);
 	ctrlout (0x07);
 	ctrlout (0x04);
-	ssleep (40);
+	usleep (40);
 	checkstatus (0xde);
 	checkctrl (0xc4);
 	ctrlout (0x06);
-	ssleep (40);
+	usleep (40);
 	checkstatus (0xfe);
 	sleep (2);
 
 	for (i = 0; i < 12287; i++)
 		dataout (0);
 
-	ssleep (500);
+	usleep (500);
 	checkstatus (0xfe);
 	dataout (0xa0);
 	checkctrl (0xc6);
 	ctrlout (0x06);
 	checkcmdout (0x07, 0x78, 0x78);
 	ctrlout (0x06);
-	ssleep (10);
+	usleep (10);
 	checkstatus (0xfe);
 	dataout (0x00);
 	checkctrl (0xc6);
 	ctrlout (0x04);
 	checkcmdout (0x05, 0x78, 0x78);
 	ctrlout (0x04);
-	ssleep (20);
+	usleep (20);
 	checkstatus (0xfe);
 	dataout (0xa0);
 	checkctrl (0xc4);
