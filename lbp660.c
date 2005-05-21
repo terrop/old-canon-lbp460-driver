@@ -159,7 +159,6 @@ unsigned char
 get_bitmap () {
 	if (bmcnt==0) {
 		memset(bmbuf,0,800);
-		//if (!feof(bitmapf)) {
 		if (linecnt<(bmheight-topskip)) {
 			if (bmwidth > 800) {
 				fread(bmbuf,1,800,bitmapf);
@@ -208,7 +207,6 @@ out_packet ( int rle, unsigned char a, unsigned char b, unsigned char c ) {
 		
 		fwrite( cbm,csize,4,cbmf );
 		cbmp = cbm;
-		//fprintf(stderr,  "Flushing packet %d...\n", csize);
 		csize=0;
 		return;
 	}
@@ -232,7 +230,6 @@ out_packet ( int rle, unsigned char a, unsigned char b, unsigned char c ) {
 	pktcnt++;
 	
 	if (csize == MAX_PACKET_COUNT) {
-	   //printf("Max packet size reached, flushing...\n");
       out_packet(2,1,0,0);
    }
 }
@@ -264,15 +261,11 @@ compress_bitmap () {
 	bmwidth = (bmwidth+7)/8;
 	/* adjust top and left margins */
 	if (topskip) {
-		/* we can't do seek from a pipe
-		fseek(bitmapf,bmwidth*topskip,SEEK_CUR);*/
+		/* we can't do seek from a pipe */
 		bitmap_seek(bmwidth*topskip);
 	}
 
 	bmcnt = 0; /* Needed, otherwise corrupt all but first page */
-
-	/*printf("COMPRESS : bmcnt %d bmwidth %d bmheight %d csize %d linecnt %d pktcnt %d topskip %d leftskip %d\n", 
-			bmcnt, bmwidth, bmheight, csize, linecnt, pktcnt, topskip, leftskip);*/
 
 	/* now we process the real data */
 	for	( band=0 ; linecnt<lines_by_page ; band++ ) {
@@ -294,12 +287,6 @@ compress_bitmap () {
 				pcnt++;
 				c2 = get_bitmap();
 				cnt--;
-				/* add more packets if there is room to */
-				/*if ((cnt < LINE_SIZE) &&
-					((pktcnt + pcnt/256) < 5000) &&
-					(linecnt<lines_by_page)) {
-						cnt += LINE_SIZE;
-				}*/
 				continue;
 			}
 			if (cnt==2) {	
@@ -371,12 +358,6 @@ compress_bitmap () {
 				c2 = get_bitmap();
 				cnt-=3;
 			}
-			/* add more packets if there is room to */
-			/*	if ((cnt < LINE_SIZE) &&
-					((pktcnt + pcnt/256) < 5000) &&
-					(linecnt<lines_by_page)) {
-						cnt += LINE_SIZE;
-				}*/
 		}
 		out_packet(2,0,0,0);
 	}
@@ -484,7 +465,6 @@ void INLINE checkcmddataout(int cmd, int data, int status, int mask) {
 }
 
 void INLINE data6out(int data) {
-   //fprintf(stderr,  "6 O0,%x\n", data);
    // Must be : cmdout(2, 4[e6])
    checkcmddataout(0x06, data, 0x70, 0x70);
    ctrlout(0x06);
@@ -492,32 +472,21 @@ void INLINE data6out(int data) {
    checkcmdout(0x7, 0x70, 0x70);
    checkcmdout(0x6, 0x70, 0x70);
    ctrlout(0x06);
-
-   //fprintf(stderr, "data6 : 0x%x -> 0x%x\n", data, statusin());
 }
 
 void INLINE data64out(int* data, int start, int end) {
    int i;
    // Must be : cmdout(2, 4[e6])
    checkcmddataout(0x06, data[start], 0x70, 0x70);
-   //fprintf(stderr, "data64[%d] - 6 : 0x%x -> 0x%x\n", start-0, data[start], statusin());
-   //fprintf(stderr,  "64 (%d, %d) O0,%x", start, end, data[start]);
    for (i = start + 1; i < end; i += 2) {
       ctrlout(0x06);
       checkcmdout(0x07, 0x70, 0x70);
-      //fprintf(stderr, "data64 - 7 : -> 0x%x\n", statusin());
       checkcmddataout(0x06, data[i], 0x70, 0x70);
-      //fprintf(stderr, "data64[%d] - 6 : 0x%x -> 0x%x\n", start-i, data[i], statusin());
-      //fprintf(stderr,  ",%x", data[i]);
       
       ctrlout(0x04);
       checkcmdout(0x05, 0x70, 0x70);
-      //fprintf(stderr, "data64 - 5 : -> 0x%x\n", statusin());
       checkcmddataout(0x04, data[i+1], 0x70, 0x70);
-      //fprintf(stderr, "data64[%d] - 4 : 0x%x -> 0x%x\n", start-i-1, data[i+1], statusin());
-      //fprintf(stderr,  ",%x", data[i+1]);
    }
-   //fprintf(stderr,  "\n");
    ctrlout(0x06);
    checkcmdout(0x7, 0x70, 0x70);
    checkcmdout(0x6, 0x70, 0x70);
@@ -547,7 +516,6 @@ int print_band ( int band, int size, int type, int white, int timeout ) {
       ctrlout(0x02);
       checkctrl(0xc2);
       checkcmddataouts(0x06, 0x80, 0x70, 0x70, 1);
-//      ctrlout(0x06);
       checkcmdout(0x07, 0x70, 0x70);
       checkcmddataouts(0x06, 0xff, 0x70, 0x70, 1);
    }
@@ -648,11 +616,8 @@ void reset_printer() {
 
    fprintf(stderr,  "Reseting the printer...\n");
    dataout(0x24);
-   //ssleep(40000);   
-   //checkctrl(0xc6);
    dataout(0x06);
    ssleep(100);
-   //checkctrl(0xc6);
    ctrlout(0x0a);
    ctrlout(0x0a);
    ctrlout(0x0e);
@@ -754,9 +719,6 @@ void reset_printer() {
    offset = 0;
    
    fprintf(stderr,  "Printer reseted.\n");
-   
-   //printf("Waiting for init end...\n");
-   //sleep(5);
 }
 
 int print_page( int page ) {
@@ -779,7 +741,6 @@ int print_page( int page ) {
    
    while (1) {  
       ret = cmdout(0);
-      //fprintf(stderr,  "ret : %d\n");
       if (!inited) {
          gettimeofday(&printnewtv, NULL);
          if ((printnewtv.tv_sec - printinittv.tv_sec) > 3) {
@@ -813,16 +774,6 @@ int print_page( int page ) {
                   inited = 2;
                }
             }
-            /*else if ((i > 0) && (i < 50)) { /* Fill if there is not enough data, is it really necessary ? */
-            	//__sti();
-/*            	ret = print_band(i, 0, len-256, 1, (inited-1));
-            	if (!ret) {
-                  return 0;
-               }
-               else if ((ret & 0xf8) != 0x78) {
-                  inited = 2;
-               }
-            }*/
             else {
                break;
             }
@@ -846,9 +797,6 @@ int print_page( int page ) {
             offset += 2;
          }
       }
-      /*if (i > 100) {
-         break;
-      }*/
    }
    fprintf(stderr,  "OK\n");
    return 1;
@@ -916,23 +864,11 @@ int main(int argc, char** argv) {
 		lines_by_page = LINES_BY_PAGE660;
 	}
 
- 	//__cli(); /* ??? */
-
 	if ((reset && !simulate) || (lbp460)) {
 		reset_printer();
 	}
 
 	if (!reset_only) {
-		/* probe for already reseted printer */
-		/*if (!simulate) {
-			send_cmd(cmd_short_pause);
-			if (need_reset) {
-				need_reset=0;
-				reset_printer();
-			}
-			reset_on_timeout=0;
-		}*/
-
 		/* pages printing loop */
       struct timeval ltv;
       struct timeval ntv;
