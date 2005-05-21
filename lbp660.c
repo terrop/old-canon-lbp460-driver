@@ -922,7 +922,7 @@ int main (int argc, char **argv)
 			bitmapf = fopen (optarg, "r");
 			if (!bitmapf)
 			{
-				message ("File not found on unreadable\n");
+				message ("File not found or unreadable\n");
 				errorexit();
 			}
 		}
