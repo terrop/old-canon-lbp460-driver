@@ -121,7 +121,6 @@ void INLINE errorexit();
 static int lines_by_page = LINES_BY_PAGE660;
 
 /* Rildo Pragana constants and functions */
-static FILE *bitmapf = NULL;
 static FILE *cbmf = NULL;
 static int bmcnt = 0;
 static unsigned char bmbuf[800]; 	/* the pbm bitmap line with provision for leftskip */
@@ -145,7 +144,7 @@ static void message (char *fmt, ...)
 }
 
 
-static void bitmap_seek (int offset)
+static void bitmap_seek (FILE *bitmapf, int offset)
 {
 	if (offset)
 	{
@@ -158,7 +157,7 @@ static void bitmap_seek (int offset)
 	}
 }
 
-static unsigned char get_bitmap (void)
+static unsigned char get_bitmap (FILE *bitmapf)
 {
 	if (bmcnt == 0)
 	{
@@ -168,7 +167,7 @@ static unsigned char get_bitmap (void)
 			if (bmwidth > 800)
 			{
 				fread (bmbuf, 1, 800, bitmapf);
-				bitmap_seek (bmwidth - 800);
+				bitmap_seek (bitmapf, bmwidth - 800);
 			} else {
 				fread (bmbuf, 1, bmwidth, bitmapf);
 			}
@@ -181,7 +180,7 @@ static unsigned char get_bitmap (void)
 	return *bmptr++;
 }
 
-static void next_page (int page)
+static void next_page (FILE *bitmapf, int page)
 {
 	/* we can't use fseek here because it may come from a pipe! */
 	int skip;
@@ -190,7 +189,7 @@ static void next_page (int page)
 		 "topskip = %d, linecnt = %d, skip = %d\n",
 		 bmheight, bmwidth, leftskip, topskip, linecnt, skip);
 	if (skip > 0)
-		bitmap_seek (skip);
+		bitmap_seek (bitmapf, skip);
 	linecnt = 0;
 }
 
@@ -248,7 +247,7 @@ static void out_packet (int rle, unsigned char a, unsigned char b, unsigned char
 		out_packet (2, 1, 0, 0);
 }
 
-static int compress_bitmap (void)
+static int compress_bitmap (FILE *bitmapf)
 {
 	int band;
 	unsigned char c1, c2, c3;
@@ -278,7 +277,7 @@ static int compress_bitmap (void)
 	bmwidth = (bmwidth + 7) / 8;
 	/* adjust top and left margins */
 	if (topskip) /* we can't do seek from a pipe */
-		bitmap_seek (bmwidth * topskip);
+		bitmap_seek (bitmapf, bmwidth * topskip);
 
 	bmcnt = 0; /* Needed, otherwise corrupt all but first page */
 
@@ -293,8 +292,8 @@ static int compress_bitmap (void)
 			cnt = LINE_SIZE * (lines_by_page - linecnt);
 
 		message ("cnt: %d, band: %d, linecnt: %d\n", cnt, band, linecnt);
-		c1 = get_bitmap();
-		c2 = get_bitmap();
+		c1 = get_bitmap (bitmapf);
+		c2 = get_bitmap (bitmapf);
 		cnt -= 2;
 		pcnt = 1;
 
@@ -303,7 +302,7 @@ static int compress_bitmap (void)
 			if ((c1 == c2) && (cnt > 2))
 			{
 				pcnt++;
-				c2 = get_bitmap();
+				c2 = get_bitmap (bitmapf);
 				cnt--;
 				continue;
 			}
@@ -339,22 +338,22 @@ static int compress_bitmap (void)
 						pcnt -= 255;
 					}
 					out_packet (1, (pcnt - 2), c1, c1);
-					c3 = get_bitmap();
+					c3 = get_bitmap (bitmapf);
 					if (cnt == 3)
 					{
 						out_packet (1, 0, c2, c3);
 					} else {
-						c1 = get_bitmap();
+						c1 = get_bitmap (bitmapf);
 						out_packet (0, c2, c3, c1);
 					}
 				} else {
-					c3 = get_bitmap();
+					c3 = get_bitmap (bitmapf);
 					if (cnt == 3)
 					{
 						out_packet (0, c1, c2, c3);
 					} else {
 						out_packet (1, 0, c1, c2);
-						c1 = get_bitmap();
+						c1 = get_bitmap (bitmapf);
 						out_packet (1, 0, c3, c1);
 					}
 				}
@@ -374,14 +373,14 @@ static int compress_bitmap (void)
 				}
 				out_packet (1, (pcnt - 1), c1, c2);
 				pcnt = 1;
-				c1 = get_bitmap();
-				c2 = get_bitmap();
+				c1 = get_bitmap (bitmapf);
+				c2 = get_bitmap (bitmapf);
 				cnt -= 2;
 			} else {
-				c3 = get_bitmap();
+				c3 = get_bitmap (bitmapf);
 				out_packet (0, c1, c2, c3);
-				c1 = get_bitmap();
-				c2 = get_bitmap();
+				c1 = get_bitmap (bitmapf);
+				c2 = get_bitmap (bitmapf);
 				cnt -= 3;
 			}
 		}
@@ -874,7 +873,8 @@ int main (int argc, char **argv)
 	int tfd;
 	int lbp460 = 0;
 
-	bitmapf = stdin;
+	FILE *bitmapf = stdin;
+
 	while ((c = getopt (argc, argv, "Rrt:l:sf:c")) != -1)
 	{
 		switch (c)
@@ -942,7 +942,7 @@ int main (int argc, char **argv)
 			cbmf = fdopen (tfd, "w+");
 			unlink (tmpname);
 
-			if (! compress_bitmap())
+			if (! compress_bitmap (bitmapf))
 				break;
 			if (!simulate)
 			{
@@ -963,7 +963,7 @@ int main (int argc, char **argv)
 				gettimeofday (&ltv, NULL);
 			}
 			fclose (cbmf);
-			next_page (page++);
+			next_page (bitmapf, page++);
 		}
 	}
 
