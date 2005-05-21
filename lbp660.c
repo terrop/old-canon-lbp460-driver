@@ -522,7 +522,8 @@ int print_band ( int band, int size, int type, int white, int timeout ) {
    ctrlout(0x04);
    ctrlout(0x05);
 
-   fprintf(stderr,  "Waiting for ready status...\n", statusin());
+   fprintf(stderr,  "Waiting for ready status...\n");
+   statusin();
    if (((ret = statusin()) & 0xf0) != 0x70) {
       struct timeval ltv; /* Begin time */
       struct timeval itv; /* Last init time */
@@ -534,7 +535,8 @@ int print_band ( int band, int size, int type, int white, int timeout ) {
          usleep(1);
          gettimeofday(&ntv, NULL);
          if (((ntv.tv_usec - itv.tv_usec) + ((ntv.tv_sec - itv.tv_sec)*1000000)) > 1000000) { // Reinit every second
-			fprintf(stderr,  "Reiniting band...\n", statusin());
+			fprintf(stderr,  "Reiniting band...\n");
+			statusin();
  		    if (type == 1) { // Quick init (band truncated), never used
 		       checkcmddataouts(0x04, 0xff, 0x70, 0x70, 1);
 		    }
