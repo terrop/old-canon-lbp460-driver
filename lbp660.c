@@ -29,7 +29,7 @@
 
 #include "lbp660.h"
 
-int pagedata[] = {
+static int pagedata[] = {
 -1, 0x89, /*100*/
 -1, 0x8a, /*172*/
 -1, 0x8b, /*244*/
@@ -96,7 +96,7 @@ int pagedata[] = {
 -256,
 -260 }; //, /*5037*/
 
-int bandinit[] = {
+static int bandinit[] = {
 -1, 0x8a, /*25157*/
 -1, 0x8e, /*25229*/
 -1, 0x89, /*25302*/
@@ -112,40 +112,39 @@ int bandinit[] = {
 -260
 };
 
-struct timeval lasttv;
-struct timeval newtv;
+static struct timeval lasttv;
+static struct timeval newtv;
 
-char gname[20];
+static char gname[20];
 
 void INLINE errorexit();
 
-int lines_by_page = LINES_BY_PAGE660;
+static int lines_by_page = LINES_BY_PAGE660;
 
 /* Rildo Pragana constants and functions */
-FILE *bitmapf = 0;
-FILE *cbmf = 0;
-int bmcnt=0;
-unsigned char bmbuf[800]; 		/* the pbm bitmap line with provision for leftskip */
-unsigned char *bmptr=bmbuf;
-int bmwidth=0, bmheight=0;
-unsigned char cbm[300000];	/* the compressed bitmap */
-unsigned char garbage[600];
-unsigned char *cbmp=cbm;
-int csize=0;				/* compressed line size */
-int linecnt=0;
-int pktcnt;
-int topskip=0;
-int leftskip=0;
+static FILE *bitmapf = NULL;
+static FILE *cbmf = NULL;
+static int bmcnt=0;
+static unsigned char bmbuf[800]; 		/* the pbm bitmap line with provision for leftskip */
+static unsigned char *bmptr=bmbuf;
+static int bmwidth=0, bmheight=0;
+static unsigned char cbm[300000];	/* the compressed bitmap */
+static unsigned char garbage[600];
+static unsigned char *cbmp=cbm;
+static int csize=0;				/* compressed line size */
+static int linecnt=0;
+static int pktcnt;
+static int topskip=0;
+static int leftskip=0;
 
-unsigned char parity[] = {
+static unsigned char parity[] = {
 	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 
 	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 
 	1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 
 	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
 };
 
-void
-bitmap_seek (int offset) {
+static void bitmap_seek (int offset) {
 	if (offset) {
 		while (offset > sizeof(garbage)) {
 			fread(bmbuf,1,sizeof(garbage),bitmapf);
@@ -155,8 +154,7 @@ bitmap_seek (int offset) {
 	}	
 }
 
-unsigned char
-get_bitmap () {
+static unsigned char get_bitmap (void) {
 	if (bmcnt==0) {
 		memset(bmbuf,0,800);
 		if (linecnt<(bmheight-topskip)) {
@@ -176,8 +174,7 @@ get_bitmap () {
 	return *bmptr++;
 }
 
-void
-next_page(int page) {
+static void next_page(int page) {
 	/* we can't use fseek here because it may come from a pipe! */
 	int skip;
 	skip = (bmheight - topskip - linecnt) * bmwidth;
@@ -188,8 +185,7 @@ next_page(int page) {
 	linecnt=0;
 }
 
-void
-out_packet ( int rle, unsigned char a, unsigned char b, unsigned char c ) {
+static void out_packet ( int rle, unsigned char a, unsigned char b, unsigned char c ) {
 	union pkt1 pk1;
 	union pkt2 pk2;
 	union pkt3 pk3;
@@ -234,8 +230,7 @@ out_packet ( int rle, unsigned char a, unsigned char b, unsigned char c ) {
    }
 }
 
-int
-compress_bitmap () {
+static int compress_bitmap (void) {
 	int band;
 	unsigned char c1,c2,c3;
 	int cnt;					/* count of characters processed in a band */
@@ -378,7 +373,7 @@ void INLINE ssleep(const int usec) {
    }
 }
 
-void INLINE errorexit() {
+void INLINE errorexit(void) {
 #ifdef DEBUG
    int* i = 0;
    (*i)++;
@@ -397,7 +392,7 @@ void INLINE ctrlout(int cmd) {
 	outb(cmd, CONTROL);
 }
 
-int INLINE ctrlin() {
+int INLINE ctrlin(void) {
 	return inb(CONTROL);
 }
 
@@ -409,7 +404,7 @@ void INLINE checkctrl(int control) {
 	}
 }
 
-int INLINE statusin() {
+int INLINE statusin(void) {
 	return inb(STATUS);
 }
 
@@ -500,7 +495,7 @@ void INLINE data64out(int* data, int start, int end) {
  * white : should we send only a white band ?
  * timeout : should we timeout (1), or wait for paper forever (0)
  */
-int print_band ( int band, int size, int type, int white, int timeout ) {
+static int print_band ( int band, int size, int type, int white, int timeout ) {
    int i;
    unsigned char *buf;
    int ret;
@@ -610,7 +605,7 @@ int print_band ( int band, int size, int type, int white, int timeout ) {
    return ret;
 }
 
-void reset_printer() {
+static void reset_printer(void) {
    int i = 0;
    int sig = 0;
    int ret = 0;
@@ -723,7 +718,7 @@ void reset_printer() {
    fprintf(stderr,  "Printer reseted.\n");
 }
 
-int print_page( int page ) {
+static int print_page( int page ) {
    int i = 0;
    int inited = 0; /* 0: the printer is not ready, 1: started to init the page, 2: started to print (there is paper) */
    int ret = 0;
