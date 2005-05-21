@@ -250,9 +250,7 @@ static void out_packet (int rle, unsigned char a, unsigned char b, unsigned char
 	pktcnt++;
 
 	if (csize == MAX_PACKET_COUNT)
-	{
 		out_packet (2, 1, 0, 0);
-	}
 }
 
 static int compress_bitmap (void)
@@ -263,9 +261,7 @@ static int compress_bitmap (void)
 	int pcnt;			/* count of chars for each packet */
 
 	if (fgets (cbm, 200, bitmapf) <= 0)
-	{
 		return 0;
-	}
 
 	if (strncmp (cbm, "P4", 2))
 	{
@@ -286,11 +282,8 @@ static int compress_bitmap (void)
 	}
 	bmwidth = (bmwidth + 7) / 8;
 	/* adjust top and left margins */
-	if (topskip)
-	{
-		/* we can't do seek from a pipe */
+	if (topskip) /* we can't do seek from a pipe */
 		bitmap_seek (bmwidth * topskip);
-	}
 
 	bmcnt = 0; /* Needed, otherwise corrupt all but first page */
 
@@ -300,11 +293,10 @@ static int compress_bitmap (void)
 		pktcnt = 0;
 		/* setup packet size */
 		if (((lines_by_page - linecnt) > ROWS_BY_BAND))
-		{
 			cnt = LINE_SIZE * ROWS_BY_BAND;
-		} else {
+		else
 			cnt = LINE_SIZE * (lines_by_page - linecnt);
-		}
+
 		message ("cnt: %d, band: %d, linecnt: %d\n", cnt, band, linecnt);
 		c1 = get_bitmap();
 		c2 = get_bitmap();
@@ -742,9 +734,7 @@ static void reset_printer (void)
 		}
 
 		if (sig && (i == 21))
-		{
 			break;
-		}
 
 		ret = cmdout(0x00) & 0xf8;
 		if (ret == 0x48)
@@ -778,10 +768,10 @@ static void reset_printer (void)
 	ssleep (40);
 	checkstatus (0xfe);
 	sleep (2);
+
 	for (i = 0; i < 12287; i++)
-	{
 		dataout (0);
-	}
+
 	ssleep (500);
 	checkstatus (0xfe);
 	dataout (0xa0);
@@ -846,9 +836,8 @@ static int print_page (int page)
 		if ((cmdout(2) & 0xf0) == 0x40)
 		{ //0x40 or 0x48
 			if (!inited)
-			{
 				inited = 1;
-			}
+
 			len = -data[offset];
 			if (len == 260)
 			{
@@ -866,11 +855,9 @@ static int print_page (int page)
 					ret = print_band (i, size, type, 0,
 							  (inited - 1) || (i == 0));
 					if (!ret)
-					{
 						return 0;
-					} else if ((ret & 0xf0) != 0x70) {
+					else if ((ret & 0xf0) != 0x70)
 						inited = 2;
-					}
 				} else {
 					break;
 				}
@@ -913,45 +900,31 @@ int main (int argc, char **argv)
 		switch (c)
 		{
 		case 'R':
-		{
 			reset_only = 1;
 			reset = 1;
 			break;
-		}
 		case 'r':
-		{
 			reset = 1;
 			break;
-		}
 		case 'c':
-		{
 			lbp460 = 1;
 			break;
-		}
 		case 't':
-		{
 			sscanf (optarg, "%d", &topskip);
 			break;
-		}
 		case 'l':
-		{
 			sscanf (optarg, "%d", &leftskip);
 			break;
-		}
 		case 's':
-		{
 			simulate++;
 			break;
-		}
 		case 'f':
-		{
 			bitmapf = fopen (optarg, "r");
 			if (!bitmapf)
 			{
 				message ("File not found on unreadable\n");
 				errorexit();
 			}
-		}
 		}
 	}
 
@@ -972,9 +945,7 @@ int main (int argc, char **argv)
 	}
 
 	if ((reset && !simulate) || (lbp460))
-	{
 		reset_printer();
-	}
 
 	if (!reset_only)
 	{
