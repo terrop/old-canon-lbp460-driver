@@ -448,7 +448,7 @@ int INLINE cmddataouts(int cmd, int data, int sleep) {
 	return stat;
 }
 
-int INLINE cmddataout(int cmd, int data) {
+void INLINE cmddataout(int cmd, int data) {
    cmddataouts(cmd, data, 10);
 }
 
