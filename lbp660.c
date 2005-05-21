@@ -22,6 +22,7 @@
 
 #include <sys/io.h> /* for outb() and inb() */
 #include <sys/time.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -148,6 +149,15 @@ static unsigned char parity[] =
 	0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0
 };
 
+static void message (char *fmt, ...)
+{
+	va_list args;
+	va_start (args, fmt);
+	vfprintf (stderr, fmt, args);
+	va_end (args);
+}
+
+
 static void bitmap_seek (int offset)
 {
 	if (offset)
@@ -189,7 +199,7 @@ static void next_page (int page)
 	/* we can't use fseek here because it may come from a pipe! */
 	int skip;
 	skip = (bmheight - topskip - linecnt) * bmwidth;
-	fprintf (stderr,  "bmheight = %d, bmwidth = %d, leftskip = %d, "
+	message ("bmheight = %d, bmwidth = %d, leftskip = %d, "
 		 "topskip = %d, linecnt = %d, skip = %d\n",
 		 bmheight, bmwidth, leftskip, topskip, linecnt, skip);
 	if (skip > 0)
@@ -259,8 +269,8 @@ static int compress_bitmap (void)
 
 	if (strncmp (cbm, "P4", 2))
 	{
-		fprintf (stderr, "Wrong file format.\n");
-		fprintf (stderr, "file position: %lx\n", ftell (bitmapf));
+		message ("Wrong file format.\n");
+		message ("file position: %lx\n", ftell (bitmapf));
 		errorexit();
 	}
 	/* bypass the comment line */
@@ -271,7 +281,7 @@ static int compress_bitmap (void)
 	/* read the bitmap's dimensions */
 	if (sscanf (cbm, "%d %d", &bmwidth, &bmheight) < 2)
 	{
-		fprintf (stderr, "Bitmap file with wrong size fields.\n");
+		message ("Bitmap file with wrong size fields.\n");
 		errorexit();
 	}
 	bmwidth = (bmwidth + 7) / 8;
@@ -295,7 +305,7 @@ static int compress_bitmap (void)
 		} else {
 			cnt = LINE_SIZE * (lines_by_page - linecnt);
 		}
-		fprintf (stderr, "cnt: %d, band: %d, linecnt: %d\n", cnt, band, linecnt);
+		message ("cnt: %d, band: %d, linecnt: %d\n", cnt, band, linecnt);
 		c1 = get_bitmap();
 		c2 = get_bitmap();
 		cnt -= 2;
@@ -443,7 +453,7 @@ void INLINE checkctrl (int control)
 	int ctrl = inb (CONTROL);
 	if ((ctrl & 0x1f) != (control & 0x1f))
 	{
-		fprintf (stderr, "Error, wrong control : %x instead of %x\n", ctrl, control);
+		message ("Error, wrong control : %x instead of %x\n", ctrl, control);
 		errorexit();
 	}
 }
@@ -458,7 +468,7 @@ void INLINE checkstatus (int status)
 	int stat = statusin();
 	if ((stat & 0xf8) != (status & 0xf8))
 	{
-		fprintf (stderr, "Error, wrong status : %x instead of %x\n", stat, status);
+		message ("Error, wrong status : %x instead of %x\n", stat, status);
 		errorexit();
 	}
 }
@@ -478,7 +488,7 @@ void INLINE checkcmdout (int cmd, int status, int mask)
 	int stat = cmdout (cmd);
 	if ((stat & mask) != (status & mask))
 	{
-		fprintf (stderr, "Error, wrong status (checkcmdout) :"
+		message ("Error, wrong status (checkcmdout) :"
 			 " %x instead of %x (mask : %x)\n", stat, status, mask);
 		errorexit();
 	}
@@ -505,7 +515,7 @@ void INLINE checkcmddataouts (int cmd, int data, int status, int mask, int sleep
 	int stat = cmddataouts (cmd, data, sleep);
 	if ((stat & mask) != (status & mask))
 	{
-		fprintf (stderr, "Error, wrong status (checkcmddataout) :"
+		message ("Error, wrong status (checkcmddataout) :"
 			 " %x instead of %x (mask : %x)\n", stat, status, mask);
 		errorexit();
 	}
@@ -563,7 +573,7 @@ static int print_band (int band, int size, int type, int white, int timeout)
 
 	buf = cbm;
 
-	fprintf (stderr, "Initing band(%d - %d - %d - %d - %d)...\n",
+	message ("Initing band(%d - %d - %d - %d - %d)...\n",
 		 band, size, type, white, timeout);
 
 	if (type == 1)
@@ -579,7 +589,7 @@ static int print_band (int band, int size, int type, int white, int timeout)
 	ctrlout (0x04);
 	ctrlout (0x05);
 
-	fprintf (stderr, "Waiting for ready status...\n");
+	message ("Waiting for ready status...\n");
 	statusin();
 	if (((ret = statusin()) & 0xf0) != 0x70)
 	{
@@ -590,13 +600,13 @@ static int print_band (int band, int size, int type, int white, int timeout)
 		gettimeofday (&itv, NULL);
 		do
 		{
-			fprintf (stderr, "%x ", ret);
+			message ("%x ", ret);
 			usleep (1);
 			gettimeofday (&ntv, NULL);
 			if (((ntv.tv_usec - itv.tv_usec)
 			     + ((ntv.tv_sec - itv.tv_sec) * 1000000)) > 1000000)
 			{ // Reinit every second
-				fprintf (stderr, "Reiniting band...\n");
+				message ("Reiniting band...\n");
 				statusin();
 				if (type == 1)
 				{ // Quick init (band truncated), never used
@@ -618,11 +628,11 @@ static int print_band (int band, int size, int type, int white, int timeout)
 			{ // 15 seconds timeout
 				if (timeout)
 				{
-					fprintf (stderr, "Band initialisation failed (0x%x)\n",
+					message ("Band initialisation failed (0x%x)\n",
 						 statusin());
 					return 0;
 				} else {
-					fprintf (stderr, "Waiting for paper... (0x%x)\n",
+					message ("Waiting for paper... (0x%x)\n",
 						 statusin());
 					while (((ret = statusin()) & 0xf0) == 0xF0)
 					{
@@ -631,8 +641,7 @@ static int print_band (int band, int size, int type, int white, int timeout)
 						     + ((ntv.tv_sec - ltv.tv_sec) * 1000000))
 						    > 1800000000)
 						{ //30 minutes timeout
-						fprintf (stderr,
-							 "Timed out waiting for paper. (0x%x)\n",
+						message ("Timed out waiting for paper. (0x%x)\n",
 							 statusin());
 						return 0;
 						}
@@ -643,10 +652,10 @@ static int print_band (int band, int size, int type, int white, int timeout)
 				}
 			}
 		} while (((ret = statusin()) & 0xf0) != 0x70);
-		fprintf (stderr, "Band inited (0x%x, %lu)\n", statusin(),
+		message ("Band inited (0x%x, %lu)\n", statusin(),
 			 ((ntv.tv_usec - ltv.tv_usec) + ((ntv.tv_sec - ltv.tv_sec) * 1000000)));
 	} else {
-		fprintf (stderr, "Band inited (0x%x, 0)\n", statusin());
+		message ("Band inited (0x%x, 0)\n", statusin());
 	}
 
 	/* data */
@@ -690,7 +699,7 @@ static void reset_printer (void)
 	int ret = 0;
 	int offset = 0;
 
-	fprintf (stderr,  "Reseting the printer...\n");
+	message ("Reseting the printer...\n");
 	dataout (0x24);
 	dataout (0x06);
 	ssleep (100);
@@ -727,7 +736,7 @@ static void reset_printer (void)
 		} else if (ret == 0x18) {
 			i = 0;
 		} else {
-			fprintf (stderr, "Error, wrong status (init 2nd loop) :"
+			message ("Error, wrong status (init 2nd loop) :"
 				 " %x instead of 0x[01]8\n", ret);
 			errorexit();
 		}
@@ -745,7 +754,7 @@ static void reset_printer (void)
 			i = 0;
 			sig = 1;
 		} else {
-			fprintf (stderr, "Error, wrong status (init 2nd loop) :"
+			message ("Error, wrong status (init 2nd loop) :"
 				 " %x instead of 0x[45]8\n", ret);
 			errorexit();
 		}
@@ -797,7 +806,7 @@ static void reset_printer (void)
 	ctrlout (0x06);
 	offset = 0;
 
-	fprintf (stderr, "Printer reseted.\n");
+	message ("Printer reseted.\n");
 }
 
 static int print_page (int page)
@@ -816,7 +825,7 @@ static int print_page (int page)
 	struct timeval printinittv;
 	struct timeval printnewtv;
 
-	fprintf (stderr, "Sending page...\n");
+	message ("Sending page...\n");
 	i = 0; //Band counter
 
 	gettimeofday (&printinittv, NULL);
@@ -846,7 +855,7 @@ static int print_page (int page)
 				offset = 0;
 				data = bandinit;
 			} else if (len > 255) {
-				fprintf (stderr, "Sending band %d...\n", i);
+				message ("Sending band %d...\n", i);
 				if ((! feof (cbmf)) && fread (&size, 1, sizeof (int), cbmf))
 				{
 					int type = len - 256;
@@ -884,7 +893,7 @@ static int print_page (int page)
 			}
 		}
 	}
-	fprintf (stderr, "OK\n");
+	message ("OK\n");
 	return 1;
 }
 
@@ -939,7 +948,7 @@ int main (int argc, char **argv)
 			bitmapf = fopen (optarg, "r");
 			if (!bitmapf)
 			{
-				fprintf (stderr, "File not found on unreadable\n");
+				message ("File not found on unreadable\n");
 				errorexit();
 			}
 		}
@@ -948,17 +957,17 @@ int main (int argc, char **argv)
 
 	if (ioperm (DATA, 3, 1))
 	{
-		fprintf (stderr, "Sorry, you were not able to gain access to the ports\n");
-		fprintf (stderr, "You must be root to run this program\n");
+		message ("Sorry, you were not able to gain access to the ports\n");
+		message ("You must be root to run this program\n");
 		errorexit();
 	}
 
 	if (lbp460)
 	{
-		fprintf (stderr, "Running with LBP-460 page resolution (600x300).\n");
+		message ("Running with LBP-460 page resolution (600x300).\n");
 		lines_by_page = LINES_BY_PAGE460;
 	} else {
-		fprintf (stderr, "Running with LBP-660 page resolution (600x600).\n");
+		message ("Running with LBP-660 page resolution (600x600).\n");
 		lines_by_page = LINES_BY_PAGE660;
 	}
 
@@ -979,7 +988,7 @@ int main (int argc, char **argv)
 			strcpy (gname, "/tmp/lbp660-XXXXXX");
 			if ((tfd = mkstemp (gname)) < 0)
 			{
-				fprintf (stderr, "Can't open a temporary file.\n");
+				message ("Can't open a temporary file.\n");
 				errorexit();
 			}
 			cbmf = fdopen (tfd, "w+");
@@ -997,7 +1006,7 @@ int main (int argc, char **argv)
 				}
 				if (! print_page (page))
 				{
-					fprintf (stderr, "Error, cannot print this page.\n");
+					message ("Error, cannot print this page.\n");
 					reset_printer();
 					errorexit();
 				}
