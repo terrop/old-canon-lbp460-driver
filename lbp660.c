@@ -20,10 +20,12 @@
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <stdio.h>
-#include <unistd.h> /* needed for ioperm() */
 #include <sys/io.h> /* for outb() and inb() */
 #include <sys/time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h> /* needed for ioperm() */
 
 #include "lbp660.h"
 
