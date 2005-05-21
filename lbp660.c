@@ -130,7 +130,6 @@ unsigned char cbm[300000];	/* the compressed bitmap */
 unsigned char garbage[600];
 unsigned char *cbmp=cbm;
 int csize=0;				/* compressed line size */
-static int last_ctrl=0x06;
 int linecnt=0;
 int pktcnt;
 int topskip=0;
@@ -156,8 +155,6 @@ bitmap_seek (int offset) {
 
 unsigned char
 get_bitmap () {
-	FILE *dbgf;
-	int i,k,tmp;
 	if (bmcnt==0) {
 		memset(bmbuf,0,800);
 		//if (!feof(bitmapf)) {
@@ -196,7 +193,6 @@ out_packet ( int rle, unsigned char a, unsigned char b, unsigned char c ) {
 	union pkt2 pk2;
 	union pkt3 pk3;
 	union pkt4 pk4;
-	FILE *dbgf;
 	int tmp;
 	
 	if (rle == 2) { // flush packet storage
@@ -241,7 +237,7 @@ out_packet ( int rle, unsigned char a, unsigned char b, unsigned char c ) {
 
 int
 compress_bitmap () {
-	int line,band;
+	int band;
 	unsigned char c1,c2,c3;
 	int cnt;					/* count of characters processed in a band */
 	int	pcnt;					/* count of chars for each packet */
@@ -535,7 +531,6 @@ void INLINE data64out(int* data, int start, int end) {
  */
 int print_band ( int band, int size, int type, int white, int timeout ) {
    int i;
-   int stat;
    unsigned char *buf;
    int ret;
    
@@ -804,7 +799,6 @@ int print_page( int page ) {
             fprintf(stderr,  "Sending band %d...\n", i);
             if ((!feof(cbmf)) && fread( &size,1,sizeof(int),cbmf )) {
          		int type = len-256;
-      		   int sizeok = 0;
       		   
       		   size = size & 0x0FFF;
       		   
@@ -859,9 +853,7 @@ int print_page( int page ) {
 }
 
 int main(int argc, char** argv) {
-	int c,i;
-	int reset_flag=1;
-	int size;
+	int c;
 	int simulate=0;
 	int page=0;
 	int reset_only=0;
