@@ -986,7 +986,8 @@ int main (int argc, char **argv)
 		}
 	}
 
-	fclose (bitmapf);
+	if (bitmapf != stdin)
+		fclose (bitmapf);
 
 	return 0;
 }
