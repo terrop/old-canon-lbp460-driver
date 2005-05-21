@@ -935,14 +935,11 @@ int main (int argc, char **argv)
 		errorexit();
 	}
 
-	if (lbp460)
-	{
-		message ("Running with LBP-460 page resolution (600x300).\n");
-		lines_by_page = LINES_BY_PAGE460;
-	} else {
-		message ("Running with LBP-660 page resolution (600x600).\n");
-		lines_by_page = LINES_BY_PAGE660;
-	}
+	/* select the right page resolution */
+	lines_by_page = lbp460 ? LINES_BY_PAGE460 : LINES_BY_PAGE660;
+	message ("%s\n", lbp460 ?
+		 "Running with LBP-460 page resolution (600x300)." :
+		 "Running with LBP-660 page resolution (600x600).");
 
 	if ((reset && !simulate) || (lbp460))
 		reset_printer();
