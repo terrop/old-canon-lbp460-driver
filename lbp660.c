@@ -119,8 +119,6 @@ static int bandinit[] =
 static struct timeval lasttv;
 static struct timeval newtv;
 
-static char gname[20];
-
 void INLINE errorexit();
 
 static int lines_by_page = LINES_BY_PAGE660;
@@ -419,7 +417,6 @@ void INLINE errorexit (void)
 	int *i = 0;
 	(*i)++;
 #endif
-	unlink (gname);
 	if (cbmf)
 		fclose (cbmf);
 	exit (1);
@@ -953,13 +950,15 @@ int main (int argc, char **argv)
 		while (1)
 		{
 			/* temporary file to store our results */
-			strcpy (gname, "/tmp/lbp660-XXXXXX");
-			if ((tfd = mkstemp (gname)) < 0)
+			char tmpname[] = "/tmp/lbp660-XXXXXX";
+			if ((tfd = mkstemp (tmpname)) < 0)
 			{
 				message ("Can't open a temporary file.\n");
 				errorexit();
 			}
 			cbmf = fdopen (tfd, "w+");
+			unlink (tmpname);
+
 			if (! compress_bitmap())
 				break;
 			if (!simulate)
@@ -982,7 +981,6 @@ int main (int argc, char **argv)
 			}
 			fclose (cbmf);
 			next_page (page++);
-			unlink (gname);
 		}
 	}
 
