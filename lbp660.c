@@ -30,6 +30,22 @@
 
 #include "lbp660.h"
 
+static struct printer
+{
+	const char *name;
+	int lines_by_page;
+} printers[] = {
+	{
+		.name = "LBP-460",
+		.lines_by_page = 3484,
+	}, {
+		.name = "LBP-660",
+		.lines_by_page = 6968,
+	}, {
+		NULL
+	}
+};
+
 static int pagedata[] =
 {
 	-1, 0x89, /*100*/
@@ -118,7 +134,7 @@ static int bandinit[] =
 
 void INLINE errorexit();
 
-static int lines_by_page = LINES_BY_PAGE660;
+static int lines_by_page;
 
 /* Rildo Pragana constants and functions */
 static FILE *cbmf = NULL;
@@ -663,37 +679,60 @@ static int print_band (int band, int size, int type, int white, int timeout)
 	return ret;
 }
 
-static void reset_printer (void)
+static void reset_printer (struct printer *prt)
 {
 	int i = 0;
 	int sig = 0;
 	int ret = 0;
 	int offset = 0;
 
-	message ("Reseting the printer...\n");
+	message ("Resetting %s...", prt->name);
+	
 	dataout (0x24);
 	dataout (0x06);
 	usleep (100);
+	
 	ctrlout (0x0a);
 	ctrlout (0x0a);
 	ctrlout (0x0e);
 	usleep (1000000); //16
+	
 	dataout (0x24);
 	checkctrl (0xce);
 	ctrlout (0x06);
 	usleep (150); /* 100-250 */
-	checkstatus (0x3e);
+
+	{
+		int stat = statusin();
+
+		switch (stat /*& 0xf8*/)
+		{
+			case 0x3e:
+				printf ("ok\n");
+				break;
+			case 0x5e:
+				printf ("failed, check cables\n");
+				errorexit();
+			default:
+				printf ("failed, error code 0x%x\n", stat);
+				errorexit();
+		}
+	}
+
 	checkctrl (0xc6);
 	ctrlout (0x07);
 	ctrlout (0x07);
 	ctrlout (0x04);
 	usleep (40);
+	
 	checkstatus (0xde);
 	checkctrl (0xc4);
 	ctrlout (0x06);
 	usleep (40);
+	
 	checkstatus (0xfe);
 	usleep (10);
+	
 	checkctrl (0xc6);
 	ctrlout (0x06);
 	sig = 0; /* true if a 5e has been received */
@@ -734,6 +773,7 @@ static void reset_printer (void)
 	checkcmdout (0x0c, 0x28, 0x78);
 	ctrlout (0x0c);
 	usleep (15);
+	
 	dataout (0x20);
 	checkctrl (0xcc);
 	checkcmdout (0x06, 0x38, 0x78);
@@ -741,10 +781,12 @@ static void reset_printer (void)
 	ctrlout (0x07);
 	ctrlout (0x04);
 	usleep (40);
+	
 	checkstatus (0xde);
 	checkctrl (0xc4);
 	ctrlout (0x06);
 	usleep (40);
+	
 	checkstatus (0xfe);
 	sleep (2);
 
@@ -752,6 +794,7 @@ static void reset_printer (void)
 		dataout (0);
 
 	usleep (500);
+	
 	checkstatus (0xfe);
 	dataout (0xa0);
 	checkctrl (0xc6);
@@ -759,6 +802,7 @@ static void reset_printer (void)
 	checkcmdout (0x07, 0x78, 0x78);
 	ctrlout (0x06);
 	usleep (10);
+	
 	checkstatus (0xfe);
 	dataout (0x00);
 	checkctrl (0xc6);
@@ -766,6 +810,7 @@ static void reset_printer (void)
 	checkcmdout (0x05, 0x78, 0x78);
 	ctrlout (0x04);
 	usleep (20);
+	
 	checkstatus (0xfe);
 	dataout (0xa0);
 	checkctrl (0xc4);
@@ -778,7 +823,7 @@ static void reset_printer (void)
 	message ("Printer reseted.\n");
 }
 
-static int print_page (int page)
+static int print_page (struct printer *prt, int page)
 {
 	int i = 0;
 	int inited = 0; // 0: the printer is not ready,
@@ -807,7 +852,7 @@ static int print_page (int page)
 			gettimeofday (&printnewtv, NULL);
 			if ((printnewtv.tv_sec - printinittv.tv_sec) > 3)
 			{
-				reset_printer();
+				reset_printer (prt);
 				gettimeofday (&printinittv, NULL);
 			}
 		}
@@ -863,6 +908,15 @@ static int print_page (int page)
 	return 1;
 }
 
+static struct printer *get_printer (const char *name)
+{
+	int i;
+	for (i = 0; printers[i].name; i++)
+		if (strcmp (printers[i].name, name) == 0)
+			return &printers[i];
+	return NULL;
+}
+
 int main (int argc, char **argv)
 {
 	int c;
@@ -871,6 +925,8 @@ int main (int argc, char **argv)
 	int reset = 0;
 	int tfd;
 	int lbp460 = 0;
+
+	struct printer *prt = get_printer ("LBP-660");
 
 	FILE *bitmapf = stdin;
 
@@ -886,6 +942,7 @@ int main (int argc, char **argv)
 			reset = 1;
 			break;
 		case 'c':
+			prt = get_printer ("LBP-460");
 			lbp460 = 1;
 			break;
 		case 't':
@@ -915,13 +972,14 @@ int main (int argc, char **argv)
 	}
 
 	/* select the right page resolution */
-	lines_by_page = lbp460 ? LINES_BY_PAGE460 : LINES_BY_PAGE660;
+	lines_by_page = prt->lines_by_page;
+	
 	message ("%s\n", lbp460 ?
 		 "Running with LBP-460 page resolution (600x300)." :
 		 "Running with LBP-660 page resolution (600x600).");
 
 	if ((reset && !simulate) || (lbp460))
-		reset_printer();
+		reset_printer (prt);
 
 	if (!reset_only)
 	{
@@ -959,10 +1017,10 @@ int main (int argc, char **argv)
 							 * 1000000)));
 			}
 			
-			if (! print_page (page))
+			if (! print_page (prt, page))
 			{
 				message ("Error, cannot print this page.\n");
-				reset_printer();
+				reset_printer (prt);
 				errorexit();
 			}
 			gettimeofday (&ltv, NULL);
