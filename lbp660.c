@@ -867,7 +867,6 @@ int main (int argc, char **argv)
 {
 	int c;
 	int simulate = 0;
-	int page = 0;
 	int reset_only = 0;
 	int reset = 0;
 	int tfd;
@@ -930,7 +929,9 @@ int main (int argc, char **argv)
 		struct timeval ltv;
 		struct timeval ntv;
 
-		while (1)
+		int page;
+		
+		for (page = 0;;page++)
 		{
 			/* temporary file to store our results */
 			char tmpname[] = "/tmp/lbp660-XXXXXX";
@@ -944,26 +945,31 @@ int main (int argc, char **argv)
 
 			if (! compress_bitmap (bitmapf))
 				break;
-			if (!simulate)
+
+			/* If simulating, skip actual printing. */
+			if (simulate)
+				goto page_printed;
+			
+			if (page != 0)
 			{
-				if (page != 0)
-				{
-					gettimeofday (&ntv, NULL);
-					/* delay between pages */
-					usleep (PAGE_DELAY - ((ntv.tv_usec - ltv.tv_usec)
-							      + ((ntv.tv_sec - ltv.tv_sec)
-								 * 1000000)));
-				}
-				if (! print_page (page))
-				{
-					message ("Error, cannot print this page.\n");
-					reset_printer();
-					errorexit();
-				}
-				gettimeofday (&ltv, NULL);
+				gettimeofday (&ntv, NULL);
+				/* delay between pages */
+				usleep (PAGE_DELAY - ((ntv.tv_usec - ltv.tv_usec)
+						      + ((ntv.tv_sec - ltv.tv_sec)
+							 * 1000000)));
 			}
+			
+			if (! print_page (page))
+			{
+				message ("Error, cannot print this page.\n");
+				reset_printer();
+				errorexit();
+			}
+			gettimeofday (&ltv, NULL);
+
+		page_printed:
 			fclose (cbmf);
-			next_page (bitmapf, page++);
+			next_page (bitmapf, page);
 		}
 	}
 
